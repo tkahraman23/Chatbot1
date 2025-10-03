@@ -1,0 +1,1430 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ElectroZirve – Chat</title>
+  <style>
+    html,body{height:100%;margin:0;background:#fff;font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
+  </style>
+</head>
+<body>
+  <ez-faq-chat></ez-faq-chat>          
+
+  <script>
+  (function(){
+    class EZSSSohbet extends HTMLElement{  
+      constructor(){           
+        super();             
+        this.attachShadow({mode:'open'}); 
+        this.ayar = {          
+          sirketAdi: 'ElektroZirve',
+          baslik: 'Hızlı Yanıt',
+          konum: 'right',             
+          yukseklik: '70vh',
+          genislik: '480px',
+          topIkonUrl: "/assets/img/robot_ikon.png",       
+          logoYolu: "/assets/img/ez-logo.png",
+          sohbetArkaPlanYolu: "/assets/img/arka_plan.png",
+          tema: {
+            anaRenk: '#0a7a20',
+            yuzey: 'linear-gradient(180deg, #106e2b 0%, #065f00 100%)',
+            yazi: '#f1f5f9',
+            kenar: 'rgba(209,250,229,.25)',               
+            perde: 'rgba(0,0,0,.28)',
+            kullaniciBalon: '#e8f5e9',
+            kullaniciYazi: '#0f3d17',
+            botBalon: 'rgba(255,255,255,.10)'
+
+          },
+          kategoriler: [],          
+        };
+        this.durum = { acik:false, gorunum:'ana', karsilamaEklendi:false };  
+      }
+
+      connectedCallback(){
+        if(window.__EZ_SOHBET_AYAR__){ this.ayarla(window.__EZ_SOHBET_AYAR__); }  
+        this.ciz();
+      }
+
+      ayarla(yeni){ this.ayar = derinBirlestir(this.ayar, yeni||{}); }         
+
+    ciz(){
+  const t = this.ayar.tema;
+  const yanBosluk = this.ayar.konum==='left'
+    ? 'inset:auto auto 16px 16px'
+    : 'inset:auto 16px 16px auto';
+  const panelYani = this.ayar.konum==='left'
+    ? 'left:0; right:auto;'
+    : 'right:0; left:auto;';
+
+  this.shadowRoot.innerHTML = `
+        
+    <style>
+
+            :host{                 
+            position:fixed;       
+            ${yanBosluk};         
+            z-index:9999;        
+            font-family:inherit; 
+            font-size:14px;
+            }
+
+            .top{                  
+              width:68px;          
+              height:68px;           
+              border-radius:9999px;   
+              border:none;           
+              cursor:pointer;        
+              background:${t.anaRenk}; 
+              display:grid;  place-items:center;   
+              box-shadow:0 12px 28px rgba(0,0,0,.35);
+              overflow:hidden 
+            }
+
+            .top:hover{         
+            transform:translateY(-2px);          
+            box-shadow:0 18px 36px rgba(0,0,0,.45)}   
+
+            .top-resim{   
+            width:100%;    
+            height:100%;  
+            object-fit:cover;  
+            pointer-events:none} 
+
+            .kaplama{ 
+            position:fixed;   
+            inset:0;
+            background:${t.perde};
+            opacity:0;
+            pointer-events:none;
+            transition:opacity .25s}
+
+            :host(.acik) .kaplama{  
+            opacity:1;              
+            pointer-events:none;}  
+
+            .panel{         
+              position:fixed;     
+              bottom:0;        
+              ${panelYani}; 
+              height:${this.ayar.yukseklik}  
+              ;width:min(${this.ayar.genislik}, 92vw); 
+              background:${t.yuzey};   
+              color:${t.yazi};        
+              border:1px solid ${t.kenar}; 
+              transform:translateY(105%); 
+              transition:transform .32s;  
+              display:flex;             
+              flex-direction:column;  
+              border-top-left-radius:20px;   
+              border-top-right-radius:20px 
+            }
+
+            :host(.acik) .panel{     
+            transform:translateY(0)} 
+
+            
+           .secenek{
+           transition: transform .08s ease, box-shadow .18s ease, border-color .18s ease, background .18s ease;
+           box-shadow: 0 6px 12px rgba(0,0,0,.14);
+          }
+          .secenek:hover{ transform: translateY(-1px); box-shadow: 0 8px 18px rgba(0,0,0,.18); }
+          .secenek:active{ transform: translateY(0);   box-shadow: 0 3px 8px rgba(0,0,0,.18); }
+
+          
+.ez-typing{
+  display:inline-flex; gap:6px; align-items:center;
+  padding:10px 12px; border-radius:12px;
+  border:1px solid rgba(209,250,229,.25);
+  background: rgba(255,255,255,.08);
+}
+.ez-typing i{
+  width:6px; height:6px; border-radius:50%;
+  background: rgba(255,255,255,.85);
+  display:inline-block; animation: ez-blink 1s infinite;
+}
+.ez-typing i:nth-child(2){ animation-delay:.15s }
+.ez-typing i:nth-child(3){ animation-delay:.3s }
+@keyframes ez-blink{
+  0%, 80%, 100% { opacity:.2; transform: translateY(0); }
+  40%          { opacity:1;  transform: translateY(-2px); }
+}
+.sr-only{
+  position:absolute !important; width:1px; height:1px; padding:0; margin:-1px;
+  overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0;
+}
+
+            .ust{                     
+              display:flex;          
+              align-items:center;   
+              gap:10px;              
+              padding:12px 14px; 
+              background:linear-gradient(135deg, rgba(34,197,94,.28), rgba(6,95,0,.55)); 
+              border-bottom:1px solid ${t.kenar} 
+            }
+            .logo{             
+              width:36px; 
+              height:36px;        
+              border-radius:9999px;  
+              background:#fff;       
+              color:${t.anaRenk};         
+              border:1px solid ${t.kenar};   
+              display:grid;                   
+              place-items:center;            
+              overflow:hidden;               
+              box-shadow:0 6px 18px rgba(0,100,0,.15)
+            } 
+            .logo img{              
+            width:100%;
+            height:100%;            
+            object-fit:contain}
+ 
+            .baslik{
+            font-size:16px;
+            font-weight:700} 
+
+            .kapat{                
+              margin-left:auto;
+              background:transparent;
+              border:1px solid rgba(255,255,255,.30); 
+              border-radius:9999px; 
+              width:36px;       
+              height:36px; 
+              display:grid;      
+              place-items:center; 
+              cursor:pointer;  
+              color:#fff 
+            }
+
+            .kapat:hover{      
+            border-color:rgba(255,255,255,.60);   
+            background:rgba(255,255,255,.06) } 
+
+            .kapat svg{
+            width:18px; 
+            height:18px }
+
+            .icerik{
+            display:flex;
+            flex-direction:column;
+            flex:1;             
+            min-height:0} 
+
+            .kaydir{             
+              --bg-size: clamp(360px, 80%, 680px);   
+              --scroll-track: #a7f3d0; 
+              --scroll-thumb: #064e3b; 
+              flex:1; 
+              min-height:0; 
+              overflow-y:auto; 
+              padding:12px 12px 8px 12px;
+              background-image: 
+                linear-gradient(160deg, rgba(16,110,43,0.88), rgba(6,95,0,0.92)),
+                url("${this.ayar.sohbetArkaPlanYolu}");          
+              background-repeat:no-repeat,no-repeat;           
+              background-position:center,center;             
+              background-size:cover,var(--bg-size) auto; 
+              background-attachment:fixed,fixed;
+              scrollbar-width:thin; 
+              scrollbar-color:var(--scroll-thumb) var(--scroll-track) 
+            }
+            .kaydir::-webkit-scrollbar{
+             width:12px }               
+
+             .kaydir::-webkit-scrollbar-track{ 
+            background:var(--scroll-track); border-radius:10px }   
+
+            .kaydir::-webkit-scrollbar-thumb{           
+              background:var(--scroll-thumb);       
+              border-radius:10px;                     
+              border:2px solid var(--scroll-track); 
+              min-height:64px                       
+            }
+            .kaydir::-webkit-scrollbar-thumb:hover{
+             filter:brightness(1.12) }                   
+
+            .mesajlar{       
+            display:flex;          
+            flex-direction:column;  
+            gap:8px}            
+
+            .satir{
+            display:flex;   
+            gap:8px}
+
+            .satir.kullanici{
+            justify-content:flex-end}
+
+            .avatar{
+            width:28px;  
+            height:28px; 
+            border-radius:999px;
+            background:#fff; 
+            border:1px solid ${t.kenar};
+            display:grid;              
+            place-items:center;
+            color:${t.anaRenk}; 
+            flex:0 0 28px;
+            overflow:hidden}
+
+            .avatar img{ 
+            width:100%;
+            height:100%;
+            object-fit:cover;
+            }   
+ 
+            .balon{       
+            max-width:92%; 
+            padding:10px 12px;
+            border-radius:14px;
+            border:1px solid ${t.kenar};
+            background:${t.botBalon};
+            color:${t.yazi}} 
+ 
+            .satir.kullanici .balon{             
+            background:${t.kullaniciBalon};    
+            color:${t.kullaniciYazi};   
+            border-color:rgba(16,185,129,.35); 
+           } 
+
+            .secenekler{   
+            display:grid; 
+            grid-template-columns:1fr;
+            gap:8px;           
+            margin-top:8px}
+            .secenek{       
+            width:100%;         
+            text-align:left;     
+            background:rgba(255,255,255,.10);
+            border:1px solid ${t.kenar};   
+            padding:10px 12px;    
+            border-radius:12px;   
+            cursor:pointer}    
+
+            .secenek:hover{
+              border-color:rgba(255,255,255,.5)}  
+
+            .alt{       
+            border-top:1px solid ${t.kenar}; 
+            padding:10px 12px;  
+            display:flex;
+            gap:8px; 
+            background:linear-gradient(180deg, rgba(0,0,0,.06), rgba(0,0,0,.12))} 
+            
+            .anaMenu{   
+            width:100%;    
+            background:${t.anaRenk}; 
+            color:#fff;     
+            border:none;         
+            border-radius:12px;   
+            padding:12px 14px;     
+            font-size:14px;       
+            cursor:pointer}  
+
+            .anaMenu:disabled{  
+            opacity:.55;
+            cursor:not-allowed} 
+
+            .gb-ico{
+            width:16px;
+            height:15px;
+            display:inline-block;
+            object-fit:contain; 
+            }          
+.geri-satir{ justify-content:center; }
+
+.geri-bar{
+  margin:0px 0 4px;
+  background:rgba(255,255,255,.08);
+  border:1px solid rgba(209,250,229,.25);
+  border-radius:10px;
+  padding:4px;
+  width:min(100%, 560px);
+  display:flex;
+  gap:4px;
+  align-items:center;
+  justify-content:space-between;
+  flex-wrap:wrap;           
+}
+  .geri-satir{
+  justify-content:flex-start;             
+  padding-left: calc(28px + 8px);           
+  padding-right: 0;                        
+}
+
+.geri-bar{
+  width: 100%;                              
+  max-width: 100%;                     
+}
+
+
+.gb-label{
+  flex:0 0 100%;            
+  order:-1;                 
+  margin:0 0 0px 0;
+  padding:0 2px;
+  font-size:14px;
+  opacity:.9;
+display:grid;                        
+              place-items:center;}
+.gb-inline{
+  flex:1;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+  padding:9px 12px;
+  border-radius:10px;
+  border:1px solid rgba(209,250,229,.25);
+  background:rgba(255, 255, 255, .10);
+  color:#fff;
+  cursor:pointer;
+  min-height: 34px;
+  text-align: center;
+  max-height: 1px;
+}
+
+.gb-inline:hover{ border-color:rgba(255,255,255,.5); }
+.gb-inline svg{ width:16px; height:16px }
+
+.gb-not{
+  font-size:12px;
+  opacity:.9;
+  padding:6px 8px;
+}
+
+@media (max-width:640px){
+  .gb-inline{ padding:8px 10px; font-size:13px }
+}
+
+
+  .top-hint {
+  font: 600 13px / 1.1 Inter, system-ui, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+  text-align: center;
+  position: absolute;
+  right: 7px;
+  top: inherit;
+  bottom: 78px;
+  width: min(285px, 70vw);
+  padding: 10px 5px;
+  background: #017a13;
+  color:white;
+  border-radius:12px;
+  box-shadow:0 10px 24px rgba(0,0,0,.22);
+  border:1px solid rgba(0,0,0,.06);
+  opacity:0; transform:translateY(6px);
+  pointer-events:none;
+  transition:opacity .25s, transform .25s;
+  z-index:10000;
+}
+.top-hint.goster{
+  opacity:1; transform:translateY(0);
+  pointer-events:auto;
+}
+.top-hint::after{
+  content:"";
+  position:absolute;
+  right:18px;
+  bottom:-8px;
+  border-top:8px solid green;
+  border-left:8px solid transparent;
+  border-right:8px solid transparent;
+}
+:host(.acik) .top-hint{ display:none }  
+@media (max-width:640px){
+  .top-hint{ bottom:70px; max-width:min(240px, 80vw); }
+}
+.top-hint .hint-close{
+  position:absolute;
+  top:-1px; right:2px;
+  width:22px; height:22px;
+  display:grid; place-items:center;
+  background:transparent;
+  border:0; border-radius:9999px;
+  color:#fff; font-size:16px; line-height:1;
+  cursor:pointer; opacity:.9;
+}
+.top-hint .hint-close:hover{
+  background:rgba(255,255,255,.12);
+}
+.top-hint{ cursor: pointer; }
+
+.ez-callback{ display:flex; flex-direction:column; gap:10px; }
+.cb-grup{ display:flex; flex-direction:column; gap:6px; }
+.cb-grup input, .cb-grup select, .cb-grup textarea{
+ padding:10px 12px; border-radius:10px;
+  border:1px solid rgba(209,250,229,.25);
+  background:rgba(255,255,255,.10); color:#fff; outline:none;
+}
+.cb-grup input::placeholder, .cb-grup textarea::placeholder{ color:rgba(255,255,255,.7); }
+.cb-yan{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.cb-onay{ display:flex; align-items:flex-start; gap:8px; font-size:13px; opacity:.9; }
+.cb-gonder{
+  background:#10b981; color:#0b241b; border:1px solid rgba(209,250,229,.25);
+  padding:10px 12px; border-radius:10px; cursor:pointer; font-weight:600;
+}
+.cb-gonder:disabled{ opacity:.6; cursor:not-allowed; }
+@media (max-width:640px){ .cb-yan{ grid-template-columns:1fr; } }
+.satir.bot .balon a,
+.satir.bot .balon a:visited{
+  color:#00206b !important;
+  text-decoration:underline;
+  text-underline-offset:2px;
+  text-decoration-thickness:1.5px;
+  font-weight: bold;
+}
+
+          </style>
+
+          <button class="top" id="top" aria-controls="panel" aria-expanded="false" title="Dijital Asistan" aria-label="Dijital Asistan">   
+            ${this.ayar.topIkonUrl ? `<img class="top-resim" src="${this.ayar.topIkonUrl}" alt="">` : ``}       
+          </button>     
+          <div class="kaplama" id="kaplama" aria-hidden="true"></div>
+
+          <aside id="panel" class="panel" role="dialog" aria-modal="false" aria-hidden="true">
+
+            <div class="ust">
+              <div class="logo" aria-hidden="true">
+                ${this.ayar.logoYolu ? `<img src="${this.ayar.logoYolu}" alt="${htmlKacir(this.ayar.sirketAdi)} logo">` : 'EZ'}
+              </div>
+
+              <div class="baslik">${htmlKacir(this.ayar.sirketAdi)} – ${htmlKacir(this.ayar.baslik)}</div>
+
+              <button class="kapat" id="kapat" aria-label="Kapat" title="Kapat" type="button">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M6 6l12 12M18 6l-12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
+            </div>
+
+            <div class="icerik">
+              <div class="kaydir" id="kaydir"><div class="mesajlar" id="mesajlar"></div></div>
+
+              <div class="alt"><button id="anaMenu" class="anaMenu" type="button">🔄 Ana Menüye Dön</button></div>
+
+            </div>
+          </aside>
+        `;
+
+        this.$top = this.shadowRoot.getElementById('top');
+        this.$kaplama = this.shadowRoot.getElementById('kaplama');
+        this.$panel = this.shadowRoot.getElementById('panel');
+        this.$kapat = this.shadowRoot.getElementById('kapat');               
+        this.$mesajlar = this.shadowRoot.getElementById('mesajlar');
+        this.$kaydir = this.shadowRoot.getElementById('kaydir');
+        this.$anaMenu = this.shadowRoot.getElementById('anaMenu');
+
+        this.$top.addEventListener('click', ()=> { this.ac(); this.karsilamaGerekirse(); });
+        this.$kaplama.addEventListener('click', ()=> this.kapa());
+        this.$kapat.addEventListener('click', ()=> this.kapa());                
+        this.$anaMenu.addEventListener('click', ()=> this.anaMenuyeDon());
+
+        
+        this.$hint = document.createElement('div');
+        this.$hint.className = 'top-hint';
+        this.$hint.setAttribute('role','status');
+        this.$hint.textContent = (this.ayar.hintMetni || 'Size yardımcı olabileceğim konuyu seçebilirsiniz.');
+        this.shadowRoot.appendChild(this.$hint);
+        
+       this.$hint.addEventListener('click', (e) => {
+       if (e.target.closest('.hint-close')) return;  
+       this.ac();
+       this.karsilamaGerekirse();
+      try { sessionStorage.setItem('EZ_HINT_SHOWN','1'); } catch(_){}
+      });
+
+        this.baslatGecikmeliIpucu(); 
+        
+const x = document.createElement('button');
+x.className = 'hint-close';
+x.setAttribute('aria-label','Kapat');
+x.innerHTML = '&times;';
+this.$hint.appendChild(x);
+x.addEventListener('click', () => {
+  this.ipucuGizle();
+  try { sessionStorage.setItem('EZ_HINT_SHOWN','1'); } catch(_){}
+});
+        this.baslatGecikmeliIpucu(); 
+
+      }
+
+      karsilamaGerekirse(){
+        if(this.durum.karsilamaEklendi) return;        
+        if(!this.ayar.kategoriler?.length) return;     
+        this.karsilamaEkle();                          
+        this.durum.karsilamaEklendi = true;            
+      }
+
+      karsilamaEkle(){
+        this.geriButonGuncelle();  
+        this.botEkle("Merhaba, sana yardımcı olmamı istediğin kategoriyi seçebilir misin?", {    
+          secenekler: this.ayar.kategoriler.map((k,i)=>({etiket:k.ad, tik:()=> this.kategoriSec(i)}))     
+        });
+        this.altaKaydir();     
+      }
+
+  async kategoriSec(i){
+  const kat = this.ayar.kategoriler[i]; if(!kat) return;
+
+  
+  if (kat.formKat === 'callback') {
+    this.durum.gorunum = 'cevap';
+    this.geriButonGuncelle();
+    this.kullaniciEkle(kat.ad);
+    await this.yaziyorGoster(500);
+    this.geriAramaFormu();
+    return;
+  }
+
+  
+  this.durum.gorunum = 'kategori';
+  this.geriButonGuncelle();
+  this.kullaniciEkle(kat.ad);
+
+  const ogeList = kat.sss || [];
+  await this.yaziyorGoster(500);
+
+  this.botEkle("Yapmak istediğin işlemi seçer misin?", {
+    secenekler: ogeList.map(s => ({ etiket: s.s, tik: () => this.soruSec(kat, s) }))
+  });
+
+  
+  
+}
+
+   async urunAltSec(altKat){
+    this.durum.gorunum = 'urun-alt';
+    this.geriButonGuncelle();
+    this.kullaniciEkle(altKat.s);
+    await this.yaziyorGoster(500);
+
+    this.botEkle("Bir soru seçin:", {
+    secenekler: (altKat.alt || []).map(q => ({ etiket: q.s, tik: () => this.soruSec(altKat, q) }))
+  });
+}
+
+async soruSec(kat, sss){
+  
+  if (sss?.form === 'callback') {
+    this.durum.gorunum = 'cevap';
+    this.geriButonGuncelle();
+    this.kullaniciEkle(sss.s);
+    await this.yaziyorGoster(500);
+    this.geriAramaFormu();
+    return;
+  }
+  this.altaKaydir({ force: true });
+requestAnimationFrame(()=> this.altaKaydir({ force: true }));
+setTimeout(()=> this.altaKaydir({ force: true }), 60);
+
+  
+  
+  if (Array.isArray(sss.alt) && sss.alt.length && sss.alt.some(x => Array.isArray(x.alt))) {
+    this.durum.gorunum = 'urun-alt';
+    this.geriButonGuncelle();
+    this.kullaniciEkle(sss.s);
+
+    await this.yaziyorGoster(420); 
+
+    this.botEkle("Ürün kategorisi seçin:", {
+      secenekler: sss.alt.map(oge => ({
+        etiket: oge.s,
+        tik: () => this.urunAltSec(oge)   
+      }))
+    });
+    return; 
+  }
+
+  
+  this.durum.gorunum = 'cevap';
+  this.geriButonGuncelle();
+  this.kullaniciEkle(sss.s);
+
+  await this.yaziyorGoster(1500); 
+  await this.botType(sss.c);      
+  this.geriBildirimSatir();
+}
+
+      satirEkle(taraf, html){
+        const satir = document.createElement('div'); satir.className = `satir ${taraf}`;     
+        if(taraf==='bot'){
+          const av = document.createElement('div'); av.className = 'avatar';   
+          if(this.ayar.logoYolu){
+            const img = document.createElement('img');
+            img.src = this.ayar.logoYolu; img.alt = (this.ayar.sirketAdi||'') + ' logo';    
+            av.appendChild(img); 
+          }                                   
+          satir.appendChild(av);
+        }
+        const balon = document.createElement('div'); balon.className='balon'; balon.innerHTML=html;   
+        satir.appendChild(balon);                                 
+        this.$mesajlar.appendChild(satir);      
+        this.altaKaydir();              
+        return balon;              
+      }
+      
+async botType(html, o={}){
+  
+  const satir = document.createElement('div'); satir.className='satir bot';
+  const av = document.createElement('div'); av.className='avatar';
+  if(this.ayar.logoYolu){ const img=document.createElement('img'); img.src=this.ayar.logoYolu; img.alt=''; av.appendChild(img); }
+  const balon = document.createElement('div'); balon.className='balon';
+  satir.append(av, balon);
+  this.$mesajlar.appendChild(satir);
+  requestAnimationFrame(()=> satir.classList.add('play')); 
+  this.altaKaydir({force:true});
+
+  
+  const rMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  
+  const tmp = document.createElement('div'); tmp.innerHTML = html;
+
+  
+  const caret = document.createElement('span'); caret.className='ez-caret';
+  balon.appendChild(caret);
+
+  
+  const speed = Math.max(4, Number(this.ayar?.typeSpeed) || 20);   
+  const punctExtra = Number(this.ayar?.typePunctHold) || 160;      
+  let _skip = false;
+
+  
+  const skipAll = ()=>{ _skip = true; };
+  balon.addEventListener('click', skipAll, {once:true});
+
+  const sleep = (ms)=> new Promise(r=> setTimeout(r, ms));
+
+  
+  const cloneAttrs = (src, dst)=>{
+    for(const a of src.attributes){
+      const n = a.name.toLowerCase();
+      if(n.startsWith('on')) continue;
+      dst.setAttribute(n, a.value);
+    }
+  };
+
+  const typeNode = async (node, parent)=>{
+    if(_skip) return;
+    if(node.nodeType === Node.TEXT_NODE){
+      const full = node.nodeValue || '';
+      if(rMotion || _skip){ parent.append(full); return; }
+      const span = document.createElement('span'); parent.appendChild(span);
+      for(let i=1;i<=full.length;i++){
+        if(_skip){ span.textContent = full; break; }
+        span.textContent = full.slice(0,i);
+        const ch = full[i-1];
+        const extra = /[.!?…]/.test(ch) ? punctExtra : /[,;:]/.test(ch) ? Math.floor(punctExtra*0.5) : 0;
+        await sleep(speed + extra);
+        if(i % 3 === 0) this.altaKaydir({force:true});
+      }
+      return;
+    }
+    if(node.nodeType === Node.ELEMENT_NODE){
+      const el = document.createElement(node.tagName);
+      cloneAttrs(node, el);
+      parent.appendChild(el);
+      if(node.childNodes && node.childNodes.length){
+        for(const child of Array.from(node.childNodes)){
+          await typeNode(child, el);
+          if(_skip) break;
+        }
+      }
+      return;
+    }
+  };
+
+  for(const child of Array.from(tmp.childNodes)){
+    await typeNode(child, balon);
+    if(_skip) break;
+  }
+
+  if(_skip){ balon.innerHTML = html; } 
+
+  caret.remove();
+
+  
+  if(o?.secenekler?.length){
+    const s = document.createElement('div'); s.className='secenekler';
+    o.secenekler.forEach(ch=>{
+      const btn = document.createElement('button'); btn.className='secenek'; btn.type='button'; btn.textContent=ch.etiket;
+      btn.addEventListener('click', ()=> ch.tik());
+      s.appendChild(btn);
+    });
+    balon.appendChild(s);
+  }
+
+  this.altaKaydir({force:true});
+  return balon;
+}
+
+      
+
+yaziyorGoster(ms = 500){
+  
+  if(this._typingNode){ try{ this._typingNode.remove(); }catch(_) {} }
+  clearTimeout(this._typingTimer);
+
+  
+
+  const satir = document.createElement('div');
+  satir.className = 'satir bot';
+  const av = document.createElement('div'); av.className = 'avatar';
+  if(this.ayar.logoYolu){
+    const img = document.createElement('img'); img.src = this.ayar.logoYolu; img.alt = '';
+    av.appendChild(img);
+  }
+  const balon = document.createElement('div'); balon.className = 'balon';
+  
+  const sr = document.createElement('span'); sr.className = 'sr-only'; sr.textContent = 'Yazıyor…';
+  balon.appendChild(sr);
+  
+  const dots = document.createElement('span');
+  dots.className = 'ez-typing'; dots.setAttribute('aria-hidden','true');
+  dots.innerHTML = '<i></i><i></i><i></i>';
+  balon.appendChild(dots);
+
+  satir.append(av, balon);
+  this.$mesajlar.appendChild(satir);
+  this._typingNode = satir;
+  this.altaKaydir();
+
+  return new Promise(res=>{
+    this._typingTimer = setTimeout(()=>{
+      try{ satir.remove(); }catch(_){}
+      this._typingNode = null;
+      res();
+    }, Math.max(0, ms));
+  });
+}
+
+      botEkle(metin, o = {}){
+  const balon = this.satirEkle('bot', `<div>${htmlKacir(metin)}</div>`);
+
+  if(o.secenekler?.length){
+    const s = document.createElement('div');
+    s.className = 'secenekler';
+
+    o.secenekler.forEach(ch=>{
+      const btn = document.createElement('button');
+      btn.className = 'secenek';
+      btn.type = 'button';
+      btn.textContent = ch.etiket;
+
+      
+      btn.addEventListener('click', ()=>{
+        this.altaKaydir({ force:true });
+        
+        requestAnimationFrame(()=> this.altaKaydir({ force:true }));
+        
+        setTimeout(()=> ch.tik(), 0);
+      });
+
+      s.appendChild(btn);
+    });
+
+    balon.appendChild(s);
+
+    
+    this.altaKaydir({ force:true });
+    requestAnimationFrame(()=> this.altaKaydir({ force:true }));
+  }
+}
+
+      botHTML(html){return this.satirEkle('bot', html); }           
+      kullaniciEkle(metin){ this.satirEkle('kullanici', htmlKacir(metin)); }   
+
+      
+geriAramaFormu(){
+  const html = `
+<form class="ez-callback" novalidate>
+  <div class="cb-grup">
+    <label>Ad Soyad </label>
+    <input type="text" name="ad" placeholder="Adınız ve Soyadınız" autocomplete="name" required />
+  </div>
+
+  <div class="cb-grup">
+    <label>Telefon Numaranız</label>
+    <input type="tel" name="tel" placeholder="+90 5xx xxx xx xx" inputmode="tel" required />
+  </div>
+
+  <div class="cb-grup">
+    <label>E-posta Adresiniz </label>
+    <input type="email" name="email" placeholder="ornek@eposta.com" autocomplete="email" required />
+  </div>
+
+  <label class="cb-onay">
+    <input type="checkbox" name="kvkk" required />
+    Aranmayı ve verilerimin KVKK kapsamında saklanmasını onaylıyorum.
+  </label>
+
+      <div class="cb-alt">
+        <button type="submit" class="cb-gonder">Numaramı bırak</button>
+      </div>
+    </form>
+  `;
+this.altaKaydir({ force: true });
+requestAnimationFrame(()=> this.altaKaydir({ force: true }));
+setTimeout(()=> this.altaKaydir({ force: true }), 60);
+
+  const balon = this.botHTML(html);
+  const form = balon.querySelector('form.ez-callback');
+
+form?.addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const fd = new FormData(form);
+  const payload = {
+    ad:    (fd.get('ad')||'').toString().trim(),
+    tel:   this._normalizeTel(fd.get('tel')),
+    email: (fd.get('email')||'').toString().trim(),
+    kvkk:  !!fd.get('kvkk')
+  };
+
+  
+  if(!payload.ad){ alert('Lütfen adınızı giriniz.'); return; }
+  if(!payload.tel){ alert('Lütfen geçerli bir telefon giriniz.'); return; }
+  if(!payload.email){ alert('Lütfen e-posta adresinizi giriniz.'); return; }
+  if(payload.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payload.email)){
+    alert('Lütfen geçerli bir e-posta giriniz.'); return;
+  }
+  if(!payload.kvkk){ alert('Lütfen KVKK onayını işaretleyiniz.'); return; }
+
+  const btn = form.querySelector('.cb-gonder');
+  if(btn){ btn.disabled = true; btn.textContent = 'Gönderiliyor...'; }
+
+  try{
+    await this.kaydetGeriArama(payload);
+    const balon = form.closest('.balon');
+    if(balon) balon.innerHTML = `<div class="gb-not">Teşekkürler! En kısa sürede sizi arayacağız.</div>`;
+  }catch(err){
+    
+    alert(err.message || 'Üzgünüz, bir sorun oluştu. Lütfen tekrar deneyin.');
+    if(btn){ btn.disabled = false; btn.textContent = 'Numaramı bırak'; }
+  }
+});
+
+}
+
+_normalizeTel(input){
+  if(!input) return '';
+  let s = String(input).replace(/[^\d+]/g,'');
+  if(/^0\d{10}$/.test(s)) s = '+9' + s;          
+  if(/^\d{10,11}$/.test(s)) s = '+90' + s.slice(-10);
+  if(!/^\+?\d{10,15}$/.test(s)) return '';
+  return s;
+}
+
+async kaydetGeriArama(data){
+  const url = this.ayar?.callbackApi || '/wp-json/ez/v1/callback';
+  const headers = {'Content-Type':'application/json'};
+  if(this.ayar?.wpNonce){ headers['X-WP-Nonce'] = this.ayar.wpNonce; }
+
+  const res = await fetch(url, {
+    method:'POST',
+    headers,
+    body: JSON.stringify({ ...data, page: location.href, source: 'ez-faq-chat' }),
+    credentials: 'same-origin' 
+  });
+
+  
+  const text = await res.text();
+  let json = null; try { json = JSON.parse(text); } catch(_) {}
+
+  if(!res.ok){
+    
+    let msg = (json && json.error) ? json.error :
+              (res.status === 403 ? 'Erişim engellendi (403). Güvenlik eklentisi engelliyor olabilir.' :
+               res.status === 404 ? 'Callback endpoint bulunamadı (404). Route kaydı çalışmıyor olabilir.' :
+               res.status === 400 ? 'Eksik/Geçersiz veri (400).' :
+               'İşlem sırasında bir hata oluştu.');
+    throw new Error(msg);
+  }
+
+  if(!json?.ok){
+    throw new Error((json && json.error) ? json.error : 'Beklenmeyen yanıt alındı.');
+  }
+  return true;
+}
+
+altaKaydir(opts={force:false}){
+  const el = this.$kaydir; if(!el) return;
+
+  
+  const should = opts.force || this._yakindaAlttaMi(el);
+  if(!should) return;
+
+  const doScroll = ()=>{
+    
+    el.scrollTop = el.scrollHeight;
+    try{
+      el.scrollTo({ top: el.scrollHeight, behavior:'smooth' });
+    }catch(_){}
+  };
+
+  
+  requestAnimationFrame(()=> requestAnimationFrame(doScroll));
+}
+
+_yakindaAlttaMi(el){
+  const kalan = el.scrollHeight - el.clientHeight - el.scrollTop;
+  return kalan < 64; 
+}
+
+      ac(){ this.classList.add('acik'); this.$panel.setAttribute('aria-hidden','false'); }          
+      kapa(){ this.classList.remove('acik'); this.$panel.setAttribute('aria-hidden','true'); }      
+anaMenuyeDon(){
+  this.durum.gorunum = 'ana';
+  this.geriButonGuncelle();
+
+  
+  if(this._typingNode){ try{ this._typingNode.remove(); }catch(_){} this._typingNode = null; }
+
+  this.karsilamaEkle();
+
+  
+  this.altaKaydir({ force: true });
+
+  
+  requestAnimationFrame(()=> this.altaKaydir({ force: true }));
+}
+      geriButonGuncelle(){ if(!this.$anaMenu) return; this.$anaMenu.disabled = this.durum.gorunum==='ana'; }    
+     
+      baslatGecikmeliIpucu(){
+  
+  const HIDE_MS = Number(this.ayar?.hintHideMs ?? 15000);
+  const SHOW_MS = Number(this.ayar?.hintShowMs ?? 15000);
+
+  
+  clearTimeout(this._hintTimer);
+  clearTimeout(this._hintHideTimer);
+
+  
+  const schedule = (delay) => {
+    clearTimeout(this._hintTimer);
+    this._hintTimer = setTimeout(() => {
+      
+      if (!this.classList.contains('acik')) {
+        this.ipucuGoster();
+      }
+
+      clearTimeout(this._hintHideTimer);
+      this._hintHideTimer = setTimeout(() => {
+        this.ipucuGizle();
+        
+        schedule(HIDE_MS);
+      }, SHOW_MS);
+    }, delay);
+  };
+
+  
+  schedule(HIDE_MS);
+
+  
+  const closeBtn = this.$hint?.querySelector?.('.hint-close');
+  if (closeBtn && !closeBtn._bound) {
+    closeBtn.addEventListener('click', (e) => {
+      e.stopPropagation?.();
+      this.ipucuGizle();
+      clearTimeout(this._hintTimer);
+      clearTimeout(this._hintHideTimer);
+      schedule(HIDE_MS);
+    });
+    
+    closeBtn._bound = true;
+  }
+};
+
+ipucuGoster(){
+  this.$hint?.classList.add('goster');
+};
+
+ipucuGizle(){
+  this.$hint?.classList.remove('goster');
+  clearTimeout(this._hintHideTimer);
+};
+
+      
+geriBildirimSatir(){
+  
+  const satir = document.createElement('div');
+  satir.className = 'satir geri-satir';
+
+  
+  const bar = document.createElement('div');
+  bar.className = 'geri-bar';
+
+  
+  const label = document.createElement('div');
+  label.className = 'gb-label';
+  label.textContent = 'Bu cevap size yardımcı oldu mu?';
+  bar.appendChild(label); 
+
+  
+  const btnEvet = document.createElement('button');
+  btnEvet.type = 'button';
+  btnEvet.className = 'gb-inline gb-yes';
+  btnEvet.innerHTML = `
+  <img class="gb-ico" src="https://emojigraph.org/media/apple/check-mark-button_2705.png" alt="" aria-hidden="true">
+  <span>Evet, yardımcı oldu</span>
+`;
+
+  const btnHayir = document.createElement('button');
+  btnHayir.type = 'button';
+  btnHayir.className = 'gb-inline gb-no';
+  btnHayir.innerHTML = `
+  <img class="gb-ico" src="https://emojigraph.org/media/apple/cross-mark_274c.png" alt="" aria-hidden="true">
+  <span>Temsilciye bağlan</span>
+`;
+  bar.append(btnEvet, btnHayir); 
+  satir.appendChild(bar);
+  this.$mesajlar.appendChild(satir);
+  this.altaKaydir();
+
+  
+  btnEvet.addEventListener('click', ()=>{
+    bar.innerHTML = `<div class="gb-not">Teşekkürler! Geri dönüşünüz bizim için çok değerli.</div>`;
+  });
+
+  btnHayir.addEventListener('click', ()=>{
+    label.textContent = 'Hangi birime bağlanmak istersiniz?';
+
+    const teknik = document.createElement('button');
+    teknik.type = 'button';
+    teknik.className = 'gb-inline';
+    teknik.textContent = '🛠️ Teknik Destek';
+
+    const satis = document.createElement('button');
+    satis.type = 'button';
+    satis.className = 'gb-inline';
+    satis.textContent = '🛒 Satış Destek';
+
+    const go = (link)=>{
+      try{ window.open(link, '_blank', 'noopener'); }catch(e){}
+      bar.innerHTML = `<div class="gb-not">Canlı destek penceresi açıldı. Buradan yazmaya devam edebilirsin.</div>`;
+    };
+
+    teknik.addEventListener('click', ()=> go(this.ayar?.iletisim?.teknikLink));
+    satis .addEventListener('click', ()=> go(this.ayar?.iletisim?.satisLink));
+
+    
+    
+    bar.replaceChildren(label, teknik, satis);
+  });
+}
+    }
+    customElements.define('ez-faq-chat', EZSSSohbet);        
+
+    function htmlKacir(s){
+      return String(s).replace(/[&<>"']/g, m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]));  
+    }
+    function derinBirlestir(hedef, kaynak){
+      const c={...hedef};                                 
+      for(const k in kaynak){
+        if(kaynak[k] && typeof kaynak[k]==='object' && !Array.isArray(kaynak[k])) c[k]=derinBirlestir(c[k]||{}, kaynak[k]);
+        else c[k]=kaynak[k];
+      }
+      return c;
+    }
+    window.sohbetiBaslat = function(ayar){              
+      window.__EZ_SOHBET_AYAR__ = ayar||{};             
+      const el = document.querySelector('ez-faq-chat');    
+      if(el){ el.ayarla(window.__EZ_SOHBET_AYAR__); el.ciz(); }    
+      return el;
+    }
+  })();
+
+const WP_NUMARA_TEKNIK = '905367771277';   
+const WP_NUMARA_SATIS  = '905336009045';   
+const WP_MESAJ_TEKNIK  = 'Merhaba, ElectroZirve müşteri temsilcisi ile görüşmek istiyorum.';
+const WP_MESAJ_SATIS  = 'Merhaba, ElectroZirve müşteri temsilcisi ile görüşmek istiyorum.';
+
+const WP_LINK_TEKNIK   = `https://wa.me/${WP_NUMARA_TEKNIK}?text=${encodeURIComponent(WP_MESAJ_TEKNIK)}`;
+const WP_LINK_SATIS    = `https://wa.me/${WP_NUMARA_SATIS}?text=${encodeURIComponent(WP_MESAJ_SATIS)}`;
+
+const kategoriler = [
+  { ad: 'Hizmetlerimiz 📈', sss: [
+  { s:'Hangi hizmetleri sunuyorsunuz?', c: `
+    <ul>
+      <li><strong>Projelendirme Hizmeti</strong></li>
+      <li><strong>Toptan Ürün Satışı</strong></li>
+      <li><strong>Perakende Ürün Satışı</strong></li>
+      <li><strong>Montaj &amp; Kurulum Hizmeti</strong></li>
+    </ul>`},
+
+  { s:'Hangi kullanım alanlarına çözüm sunuyorsunuz?', c: `
+    <ul>
+      <li>Villalar ve konut sistemleri</li>
+      <li>Marin/tekne enerji sistemleri</li>
+      <li>Karavan ve mobil uygulamalar</li>
+      <li>Çiftlik &amp; tarımsal uygulamalar</li>
+      <li>Tiny house çözümleri</li>
+      <li>VIP araç enerji paketleri</li>
+      <li>Ofis ve ticarethaneler</li>
+    </ul>`},
+
+  { s:'Toplu ürün alımı yapabilir miyim?', c: `
+    <p>Evet, toptan satış yapıyoruz. Fiyat alma işlemleri için
+    <a href="https://electrozirve.com/iletisim/" target="_blank" rel="noopener">resmi sitemiz üzerinden</a>
+    ekibimizle iletişime geçebilirsiniz.</p>`},
+
+  { s:'Kurulum hizmetini kim gerçekleştiriyor?', c: `
+    <p>Marmara ve çevresinde montajı kendi ekiplerimiz yürütür; diğer illerde sertifikalı çözüm ortaklarımız ile kurulum gerçekleştiriyoruz.</p>`},
+
+  { s:'Satış sonrası teknik destek sağlıyor musunuz?', c: `
+    <p>Evet. Ürünü aldıktan sonra, gerek montaj gerek teknik bilgi ihtiyacınız olduğunda mühendis ekibimiz sorularınızı yanıtlar.
+    Sorun çözümü ve yönlendirme için telefon/e-posta kanallarımız aktif olarak çalışmaktadır.</p>
+    <p>Garanti süreçlerinde üretici koşulları ile birlikte kendi servis prosedürlerimiz işler; parça değişimi ve log testi gibi adımları ekiplerimiz takip eder.</p>`},
+
+  { s:'Bayilik ya da distribütörlük veriyor musunuz?', c: `
+    <p>Evet. Türkiye’de 20 şehirde bulunan 40’ı aşkın bayi ve satış noktası sayımızı 81 ile çıkarmayı hedefliyoruz!
+    Bayilik başvurusu için <a href="https://electrozirve.com/bayilik/" target="_blank" rel="noopener">bu forma</a> tıklayıp başvuru yapabilirsiniz.</p>`}
+]},
+
+{ ad: 'Ürünler 📦', sss: [
+  { s:'Hangi ürün gruplarınız mevcut?', alt: [
+
+{ s:'Güneş Panelleri', alt:[
+  { s:'Monokristal ve polikristal paneller arasındaki farklar nelerdir?', 
+    c:`<p><a href="https://electrozirve.com/apex-monokristal-gunes-panelleri/" target="_blank" rel="noopener">Monokristal paneller</a> tek kristal yapısı sayesinde daha yüksek verim ve daha iyi düşük ışık performansı sunar; <a href="https://electrozirve.com/apex-polikristal-gunes-panelleri/" target="_blank" rel="noopener">polikristal paneller</a> daha ekonomik olabilir ancak verimleri genelde daha düşüktür.</p>`},
+  { s:'Half-Cut teknolojisi ne işe yarar?', 
+    c:`<p><a href="https://electrozirve.com/monokristal-gunes-paneli/" target="_blank" rel="noopener">Half-Cut paneller</a> hücrelerin ikiye bölünmesiyle akım azalır, ısınma ve kayıplar düşer; kısmi gölgede daha stabil üretim ve genel verim artışı sağlar.</p>`},
+  { s:'Güneş paneli verimliliğini nasıl artırabilirim?', 
+    c:`<p>Güneş panellerinde verimliliği artırmak için gölgeyi engellemek, uygun açı/yön seçmek, düzenli temizlik yapmak, kaliteli kablolama kullanmak ve doğru inverter/MPPT seçmek gerekir.</p>`},
+  { s:'Güneş panellerinizin garanti süresi ne kadardır?', 
+    c:`<p>Güneş panellerimiz <strong>10 yıl</strong> ürün garantisi + <strong>25 yıl</strong> performans garantisi (tipik: 25. yıl sonunda %80 verimlilik taahhüdü) ile sunulmaktadır.</p>`},
+  { s:'Güneş panellerimizi incelemek için tıklayın', 
+    c:`<img src="x" style="display:none" onerror="try{window.open('https://electrozirve.com/gunes-panelleri/','_blank','noopener');}catch(e){};var satir=this.closest('.satir');if(satir)satir.remove();">` }
+]},
+
+{ s:'İnverterler', alt:[
+  { s:'Akıllı inverter ile klasik inverter farkı nedir?', 
+    c:`<p><a href="https://electrozirve.com/akilli-inverterler/" target="_blank" rel="noopener">Akıllı inverterler</a> içerisinde solar şarj özelliği, AC şarj özelliği ve DC elektriği AC elektriğe çevirici (inverter) özelliği bulunur; çok özellikli kompakt ürünlerdir. <a href="https://electrozirve.com/tam-sinus-inverterler/" target="_blank" rel="noopener">Klasik inverter</a> ise yalnızca DC elektriği AC elektriğe dönüştürür; solar/AC şarj gibi diğer işlevler için ayrıca cihazlar gerekir.</p>`},
+  { s:'Akıllı inverter modelleriniz ve markalarınız nelerdir?', 
+    c:`<p>Kendi markalarımız (<strong>Apex</strong> / <strong>NP Power</strong>) ve partner markaların kombinasyonları mevcuttur. Bu inverterler genelde hibrit (inverter + şarj yönetimi) yeteneklidir; saf sinüs çıkış, DC-AC dönüşüm, MPPT regülasyonu ve farklı çalışma modları sunar.</p>`},
+  { s:'Hibrit inverter ne işe yarar?', 
+    c:`<p>Akülü (enerji depolamalı) ve aküsüz çalışabilen inverterlere <a href="https://electrozirve.com/apex-pro-4-2-kw-hybrid-akilli-inverter/" target="_blank" rel="noopener">hybrid inverter</a> denir.</p>`},
+  { s:'Modifiye sinüs mü, tam sinüs mü?', 
+    c:`<p><a href="https://electrozirve.com/tam-sinus-inverterler/" target="_blank" rel="noopener">Tam sinüs inverterler</a>; motor, buzdolabı ve hassas elektronikler için güvenlidir. <a href="https://electrozirve.com/modifiye-sinus-inverter/" target="_blank" rel="noopener">Modifiye sinüs inverterler</a> daha ekonomiktir ancak ısınma, gürültü ve verimsizlik yaratabilir.</p>`},
+  { s:'İnverter kapasitesi nasıl belirlenir?', 
+    c:`<p>İnverter kapasitesi, eşzamanlı çalışan cihazların tepe gücü toplanarak, motorlu yüklerde kalkış payı eklenerek ve %20–30 emniyet marjı bırakılarak belirlenir.</p>`},
+  { s:'İnverterlerimizi incelemek için tıklayın', 
+    c:`<img src="x" style="display:none" onerror="try{window.open('https://electrozirve.com/inverter/','_blank','noopener');}catch(e){};var satir=this.closest('.satir');if(satir)satir.remove();">`}
+]},
+
+{ s:'Aküler', alt:[
+  { s:'Jel akü ile LiFePO₄ akü arasındaki fark nedir?', 
+    c:`<p><a href="https://electrozirve.com/lityum-akuler/" target="_blank" rel="noopener">LiFePO₄ aküler</a> daha hafif, derin deşarja dayanıklı ve uzun ömürlüdür; 
+    <a href="https://electrozirve.com/jel-akuler/" target="_blank" rel="noopener">jel aküler</a> daha ekonomiktir fakat döngü ömrü ve kullanılabilir kapasite daha düşüktür.</p>`},
+
+  { s:'LiFePO₄ akülerinizin avantajları nelerdir?', 
+    c:`<p><a href="https://electrozirve.com/akuler/" target="_blank" rel="noopener">LiFePO₄ aküler;</a></p>
+    <ul>
+      <li>Uzun ömürlüdür ve yüksek çevrim sayısına sahiptir.</li>
+      <li>Daha hafif yapısı sayesinde taşınabilirliği yüksektir.</li>
+      <li>Hızlı tepki ve şarj/deşarj kabiliyeti vardır.</li>
+      <li>Düşük kaçak ve ısıl bozunma riski bulunur.</li>
+    </ul>`},
+
+  { s:'Derin deşarj nedir, neden önemlidir?', 
+    c:`<p><strong>Derin deşarj</strong>, akünün kapasitesinin büyük kısmının boşaltılmasıdır. 
+    Sık derin deşarj, kurşun kimyada ömrü kısaltır; 
+    LiFePO₄ aküler bu açıdan daha dayanıklıdır.</p>`},
+
+  { s:'Akünün ömrünü korumak için nelere dikkat edilmeli?', 
+    c:`<p>Akülerin ömrünü korumak için doğru şarj profili, uygun sıcaklık, derin deşarjdan kaçınma ve düzenli izleme önemlidir.</p>`},
+
+  { s:'Akülerimizi incelemek için tıklayın', 
+    c:`<img src="x" style="display:none" onerror="try{window.open('https://electrozirve.com/akuler/','_blank','noopener');}catch(e){};var satir=this.closest('.satir');if(satir)satir.remove();">` }
+]},
+
+{ s:'Akü Şarj Cihazları', alt:[
+  { s:'AC-DC ve DC-DC şarj cihazları arasındaki fark nedir?', 
+    c:`<p><a href="https://electrozirve.com/ac-dc-aku-sarj-cihazlari/" target="_blank" rel="noopener">AC-DC şarj cihazları</a> şehir şebekesinden, 
+    <a href="https://electrozirve.com/dc-dc-aku-sarj-cihazlari/" target="_blank" rel="noopener">DC-DC şarj cihazları</a> ise alternatör veya başka bir DC kaynaktan aküyü doğru profilde şarj eder.</p>`},
+
+  { s:'Şarj cihazı seçerken nelere dikkat etmeliyim?', 
+    c:`<p>Şarj cihazı seçerken akü kimyası (LiFePO₄/jel), voltaj, gerekli akım, sıcaklık kompanzasyonu ve korumalar dikkate alınmalıdır.</p>`},
+
+  { s:'Şarj süresi nasıl hesaplanır?', 
+    c:`<p><strong>Şarj süresi</strong> ≈ Akü kapasitesi (Ah) × 1.2 / Şarj akımı (A) formülüyle hesaplanır.</p>`},
+
+  { s:'Şarj cihazı aküye zarar verir mi?', 
+    c:`<p>Doğru şarj cihazı aküye zarar vermez. Yanlış voltaj/akım uygulamaları zarar verebilir.</p>`},
+
+  { s:'Şarj cihazlarımızı incelemek için tıklayın', 
+    c:`<img src="x" style="display:none" onerror="try{window.open('https://electrozirve.com/aku-sarj-cihazlari/','_blank','noopener');}catch(e){};var satir=this.closest('.satir');if(satir)satir.remove();">` }
+]},
+
+{ s:'Şarj Kontrol Cihazları', alt:[
+  { s:'MPPT ve PWM arasındaki fark nedir?', 
+    c:`<p><a href="https://electrozirve.com/mppt-solar-sarj-kontrol-cihazlari/" target="_blank" rel="noopener">MPPT cihazları</a> panelin maksimum güç noktasını takip ederek daha yüksek üretim sağlar; 
+    <a href="https://electrozirve.com/pwm-solar-sarj-kontrol-cihazlari/" target="_blank" rel="noopener">PWM cihazları</a> daha basit ve ekonomiktir.</p>`},
+
+  { s:'Şarj kontrol cihazı neden gereklidir?', 
+    c:`<p><a href="https://electrozirve.com/solar-sarj-kontrol-cihazlari/" target="_blank" rel="noopener">Şarj kontrol cihazı</a>, panel ile akü arasında voltaj/akımı yöneterek akü ömrünü uzatır.</p>`},
+
+  { s:'Günlük enerji üretimi nasıl izlenir?', 
+    c:`<p>Enerji üretimi MPPT/PWM cihazlarının ekranı üzerinden izlenebilir.</p>`},
+
+  { s:'İnverter ile entegrasyon mümkün mü?', 
+    c:`<p>Evet. Hibrit inverterlerde MPPT entegredir; ayrı sistemlerde de senkronize çalışabilir.</p>`},
+
+  { s:'Şarj kontrol cihazlarımızı incelemek için tıklayın', 
+    c:`<img src="x" style="display:none" onerror="try{window.open('https://electrozirve.com/solar-sarj-kontrol-cihazlari/','_blank','noopener');}catch(e){};var satir=this.closest('.satir');if(satir)satir.remove();">` }
+]}
+
+  ]},
+
+  { s:'Ürünleriniz CE ve TSE belgelerine sahip mi?', c:`<p>Evet, tüm ürünlerimiz <strong>CE</strong> ve <strong>TSE</strong> sertifikalarına sahiptir.</p>`},
+
+  { s:'Stok ve teslimat süresi ne kadardır?', c:`<p>Stok durumunu ürün sayfalarımızda <em>“Stokta”</em>, <em>“5 adetten az”</em> veya <em>“Stokta yok”</em> şeklinde görebilirsiniz.</p>
+    <p>Teslimatlar stok durumuna bağlı olarak genellikle <strong>2–7 iş günü</strong> içinde yapılır (şehir içi daha hızlıdır). Büyük siparişlerde tedarik süresi uzayabilir; projeye özel siparişlerde <strong>3–5 hafta</strong> gerekebilir.</p>`}
+
+]},
+  { ad: 'Keşif & Randevu 🔍', sss: [
+  { s:'Nasıl keşif randevusu alabilirim?', c: `
+    <p>En hızlı yol, <a href="https://electrozirve.com/iletisim/" target="_blank" rel="noopener">iletişim formunu</a> doldurmak veya merkez hattımızı aramaktır. Başakşehir ofisimizden size uygun tarih-saat planlıyoruz. Talebiniz sonrası ekibimiz önce kısa bir ön görüşme yapar, ardından keşif ekibimiz sahaya çıkar.</p>`},
+
+  { s:'Türkiye genelinde keşif hizmetiniz var mı?', c: `
+    <p>Marmara Bölgesi için keşifleri doğrudan kendi mühendis ve teknisyenlerimiz ile yapıyoruz. Türkiye genelinde ise çözüm ortaklarımız aracılığıyla keşif hizmeti sağlıyoruz.</p>`},
+
+  { s:'Keşif hizmetiniz ücretli mi?', c: `
+    <p>Standart çatı/arsa keşifleri <strong>ücretsizdir</strong>.</p>`}
+]},
+
+  { ad: 'Garanti & Destek 🤝', sss: [
+  { 
+  s:'Ürünlerinizin garanti süresi nedir?', 
+  c: `
+    <ul>
+      <li><strong>Jel akülerimiz</strong>: 2 yıl garantilidir.</li>
+      <li><strong>Lityum akülerimiz</strong>: 3–5 yıl garantilidir.</li>
+      <li><strong>İnverterlerimiz</strong>: 2–3 yıl garantilidir.</li>
+      <li><strong>Şarj kontrol cihazlarımız</strong>: 2–3 yıl garantilidir.</li>
+      <li><strong>Sürücülerimiz</strong>: 2 yıl garantilidir.</li>
+    </ul>
+    <p><em>Not:</em> Garanti süreleri üründen ürüne değişiklik göstermektedir.</p>`},
+
+  { s:'Garanti kapsamında neler yer alıyor?', c: `
+    <ul>
+      <li>Fabrikasyon ve üretim kaynaklı arızalar.</li>
+      <li>Normal kullanım koşullarında oluşan teknik sorunlar.</li>
+      <li>Ürünle birlikte verilen garanti belgesinde belirtilen kapsama dâhil olan bileşenler.</li>
+    </ul>`},
+
+  { s:'Arızalı ürünümü nasıl gönderebilirim?', c: `
+    <ol>
+      <li>Önce teknik destek hattımızla iletişime geçiniz. Destek ekibimiz uzaktan arıza tespiti yapar.</li>
+      <li>Sahada çözülemeyen durumlarda size bir iade/servis kodu verilir.</li>
+      <li>Ürünü fatura/garanti belgesi ile birlikte merkezimize (Başakşehir – İstanbul) veya yönlendirdiğimiz servis noktasına kargolarsınız.</li>
+    </ol>`},
+
+  { s:'Garanti dışı onarım hizmetiniz var mı?', c: `
+    <p>Evet. Garanti süresi bitmiş ya da kullanıcı kaynaklı arızalarda <strong>ücretli onarım</strong> ve parça değişimi hizmeti veriyoruz. Maliyet, arıza tespitinden sonra tarafınıza bildirilir ve onayınız alınır.</p>`},
+
+  { s:'Teknik destek hattınız hangi günler çalışıyor?', c: `
+    <p>Teknik destek hattımız <strong>hafta içi 09:00–18:00</strong> saatleri arasında hizmet vermektedir.</p>`},
+
+  { s:'Garanti süresi dolan ürünler için ne yapabilirim?', c: `
+    <ul>
+      <li>Ücretli servisimizden faydalanabilirsiniz.</li>
+      <li>İsterseniz ürününüz, <strong>yenilenmiş ürün programı</strong> kapsamında uygun fiyatlı değişim seçenekleriyle değerlendirilebilir.</li>
+      <li>Büyük kapasiteli projelerde, eski ürünleri yeni seriyle değiştirme kampanyaları da düzenliyoruz.</li>
+    </ul>`}
+]},
+
+{ ad: 'Biz sizi arayalım 📞 ', formKat: 'callback' }
+
+];
+
+  const isMobile = window.matchMedia('(max-width: 640px)').matches;
+  const panelH = isMobile ? '58vh' : '70vh';
+
+  sohbetiBaslat({
+    sirketAdi:'ElectroZirve',
+    baslik:'Hızlı Yanıt',
+    yukseklik: panelH,           
+    genislik:'480px',
+    topIkonUrl:"https://electrozirve.de/wp-content/uploads/2025/09/robot_ikon.png",
+    logoYolu:"https://electrozirve.de/wp-content/uploads/2025/09/logo.png",
+    sohbetArkaPlanYolu:"https://electrozirve.de/wp-content/uploads/2025/09/arka_plan.png",
+    kategoriler,
+    iletisim:  {
+      teknikLink: WP_LINK_TEKNIK,
+      satisLink: WP_LINK_SATIS
+    },
+    hintMetni: '👋 Size yardımcı olabileceğim konuyu seçebilirsiniz.',
+  hintGecikmeMs: 15000   
+});
+
+</script>
+
+  
+<style>
+  #ez-hizli-destek{     
+    position: fixed;
+    right: 96px;             
+    bottom: 28px;            
+    padding: 10px 14px;
+    background: #017a13;     
+    color: #fff;
+    border: 0;
+    border-radius: 9999px;
+    font: 600 14px/1.1 Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 10px 24px rgba(0,0,0,.25);
+    cursor: pointer;
+    z-index: 10000;          
+    user-select: none;
+  }
+  #ez-hizli-destek svg{ width:18px; height:18px }
+
+  
+  #ez-hizli-destek::after{
+    content:"";
+    position:absolute;
+    right:-6px;             
+    top:50%;
+    transform:translateY(-50%);
+    border-left:12px solid #017a13;  
+    border-top:10px solid transparent;
+    border-bottom:10px solid transparent;
+  }
+
+  
+  @media (max-width:640px){
+    #ez-hizli-destek{ right:84px; bottom:22px; padding:8px 12px; font-size:13px }
+  }
+</style>
+
+<button id="ez-hizli-destek" type="button" aria-label="Hızlı Destek">
+  
+  
+  Hızlı Destek
+</button>
+
+<script>
+  (function(){
+    const badge = document.getElementById('ez-hizli-destek');
+    const chat  = document.querySelector('ez-faq-chat');
+
+    if (!badge || !chat) return;
+
+    
+    badge.addEventListener('click', () => {
+      if (typeof chat.ac === 'function') chat.ac();
+      if (typeof chat.karsilamaGerekirse === 'function') chat.karsilamaGerekirse();
+    });
+
+    
+    const sync = () => { badge.style.display = chat.classList.contains('acik') ? 'none' : 'flex'; };
+    const mo = new MutationObserver(sync);
+    mo.observe(chat, { attributes:true, attributeFilter:['class'] });
+    sync(); 
+  })();
+</script>
+</body> 
+</html> 
